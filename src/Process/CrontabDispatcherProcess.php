@@ -3,6 +3,8 @@ declare( strict_types = 1 );
 
 namespace ThinkCrontab\Process;
 
+use Swoole\Coroutine;
+use Swoole\Process;
 use Swoole\Timer;
 use think\App;
 use think\Log;
@@ -44,7 +46,7 @@ class CrontabDispatcherProcess
 
     public function handle(): void
     {
-        run( function () {
+        $process = new Process( function (Process $process) {
             try {
                 $this->crontabRegister->handle();
                 while ( true ) {
@@ -59,9 +61,10 @@ class CrontabDispatcherProcess
                 $this->logger->error( $throwable->getMessage() );
             } finally {
                 Timer::clearAll();
-                sleep( 1 );
+                Coroutine::sleep( 5 );
             }
-        } );
+        },false,0,true );
+        $process->start();
     }
 
     private function sleep()
@@ -69,6 +72,6 @@ class CrontabDispatcherProcess
         $current = date( 's',time() );
         $sleep   = 60 - $current;
         $this->logger->debug( 'Crontab dispatcher sleep '.$sleep.'s.' );
-        $sleep > 0 && \Swoole\Coroutine::sleep( $sleep );
+        $sleep > 0 && Coroutine::sleep( $sleep );
     }
 }

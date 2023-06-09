@@ -1,17 +1,18 @@
 <?php
+declare( strict_types = 1 );
 
 namespace ThinkCrontab\Strategy;
 
 use Carbon\Carbon;
+use Closure;
 use InvalidArgumentException;
 use Swoole\Timer;
+use Swoole\Coroutine;
 use think\App;
-use think\Console;
+use think\facade\Console;
 use think\Log;
 use ThinkCrontab\Crontab;
 use Throwable;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\NullOutput;
 
 class Executor
 {
@@ -62,12 +63,19 @@ class Executor
                     }
                     break;
                 case 'command':
-                    $input       = $this->app->make( ArrayInput::class,[$crontab->getCallback()] );
-                    $output      = $this->app->make( NullOutput::class );
-                    $application = $this->app->get( Console::class );
-                    $runnable    = function () use ($application,$input,$output) {
-                        if ($application->doRun( $input,$output ) !== 0) {
-                            throw new \RuntimeException( 'Crontab task failed to execute.' );
+                    $command  = $crontab->getCallback();
+                    $runnable = function () use ($command,$crontab) {
+                        try {
+                            $result = true;
+                            if (!empty( $command['arguments'] )) {
+                                Console::call( $command['command'],[$command['arguments']] );
+                            } else {
+                                Console::call( $command['command'] );
+                            }
+                        } catch ( \Throwable $throwable ) {
+                            $result = false;
+                        } finally {
+                            $this->logResult( $crontab,$result,$throwable ?? null );
                         }
                     };
                     break;
@@ -75,21 +83,35 @@ class Executor
                     throw new InvalidArgumentException( sprintf( 'Crontab task type [%s] is invalid.',$crontab->getType() ) );
             }
 
-            $runnable = function ($isClosing) use ($crontab,$runnable) {
-                if ($isClosing) {
-                    $crontab->close();
-                    $this->logResult( $crontab,false );
-                    return;
-                }
-                $runnable();
+            $runnable = function () use ($crontab,$runnable) {
+                Coroutine::create( $runnable );
+                $runnable = $this->catchToExecute( $crontab,$runnable );
                 $crontab->complete();
+                return $runnable();
             };
-            Timer::after( max( $diff,0 ),$runnable );
+
+            Timer::after( $diff > 0 ? $diff * 1000 : 1,$runnable );
         } catch ( Throwable $exception ) {
             $crontab->close();
             throw $exception;
         }
     }
+
+
+    protected function catchToExecute(Crontab $crontab,Closure $runnable): Closure
+    {
+        return function () use ($crontab,$runnable) {
+            try {
+                $result = true;
+                $runnable();
+            } catch ( Throwable $throwable ) {
+                $result = false;
+            } finally {
+                $this->logResult( $crontab,$result,$throwable ?? null );
+            }
+        };
+    }
+
 
     protected function logResult(Crontab $crontab,bool $isSuccess,?Throwable $throwable = null)
     {

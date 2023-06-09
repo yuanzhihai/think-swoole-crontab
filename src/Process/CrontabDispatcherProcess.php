@@ -1,9 +1,9 @@
 <?php
+declare( strict_types = 1 );
 
 namespace ThinkCrontab\Process;
 
 use Swoole\Process;
-use Swoole\Server;
 use Swoole\Timer;
 use think\App;
 use think\Log;
@@ -14,11 +14,6 @@ use ThinkCrontab\Strategy\StrategyInterface;
 
 class CrontabDispatcherProcess
 {
-    /**
-     * @var Server
-     */
-    private Server $server;
-
     /**
      * @var CrontabRegister
      */
@@ -41,7 +36,6 @@ class CrontabDispatcherProcess
 
     public function __construct(App $app)
     {
-        $this->server          = $app->get( Server::class );
         $this->crontabRegister = $app->make( CrontabRegister::class );
         $this->scheduler       = $app->make( Scheduler::class );
         $this->strategy        = $app->make( CoroutineStrategy::class );
@@ -50,10 +44,10 @@ class CrontabDispatcherProcess
 
     public function handle(): void
     {
+
         $process = new Process( function (Process $process) {
             try {
                 $this->crontabRegister->handle();
-
                 while ( true ) {
                     $this->sleep();
                     $crontabs = $this->scheduler->schedule();
@@ -70,7 +64,8 @@ class CrontabDispatcherProcess
             }
         },false,0,true );
 
-        $this->server->addProcess( $process );
+        $process->start();
+
     }
 
     private function sleep()

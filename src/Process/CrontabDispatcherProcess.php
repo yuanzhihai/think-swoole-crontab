@@ -3,7 +3,6 @@ declare( strict_types = 1 );
 
 namespace ThinkCrontab\Process;
 
-use Swoole\Process;
 use Swoole\Timer;
 use think\App;
 use think\Log;
@@ -11,6 +10,7 @@ use ThinkCrontab\CrontabRegister;
 use ThinkCrontab\Scheduler;
 use ThinkCrontab\Strategy\CoroutineStrategy;
 use ThinkCrontab\Strategy\StrategyInterface;
+use function Swoole\Coroutine\run;
 
 class CrontabDispatcherProcess
 {
@@ -44,8 +44,7 @@ class CrontabDispatcherProcess
 
     public function handle(): void
     {
-
-        $process = new Process( function (Process $process) {
+        run( function () {
             try {
                 $this->crontabRegister->handle();
                 while ( true ) {
@@ -60,12 +59,9 @@ class CrontabDispatcherProcess
                 $this->logger->error( $throwable->getMessage() );
             } finally {
                 Timer::clearAll();
-                sleep( 5 );
+                sleep( 1 );
             }
-        },false,0,true );
-
-        $process->start();
-
+        } );
     }
 
     private function sleep()

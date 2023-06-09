@@ -4,10 +4,9 @@ declare( strict_types = 1 );
 namespace ThinkCrontab\Strategy;
 
 use Carbon\Carbon;
-use Closure;
 use InvalidArgumentException;
-use Swoole\Timer;
 use Swoole\Coroutine;
+use Swoole\Timer;
 use think\App;
 use think\facade\Console;
 use think\Log;
@@ -85,9 +84,7 @@ class Executor
 
             $runnable = function () use ($crontab,$runnable) {
                 Coroutine::create( $runnable );
-                $runnable = $this->catchToExecute( $crontab,$runnable );
                 $crontab->complete();
-                return $runnable();
             };
 
             Timer::after( $diff > 0 ? $diff * 1000 : 1,$runnable );
@@ -95,21 +92,6 @@ class Executor
             $crontab->close();
             throw $exception;
         }
-    }
-
-
-    protected function catchToExecute(Crontab $crontab,Closure $runnable): Closure
-    {
-        return function () use ($crontab,$runnable) {
-            try {
-                $result = true;
-                $runnable();
-            } catch ( Throwable $throwable ) {
-                $result = false;
-            } finally {
-                $this->logResult( $crontab,$result,$throwable ?? null );
-            }
-        };
     }
 
 

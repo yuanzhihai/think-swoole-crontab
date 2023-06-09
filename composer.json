@@ -19,5 +19,12 @@
     "psr-4": {
       "ThinkCrontab\\": "src/"
     }
+  },
+  "extra": {
+    "think": {
+      "config":{
+        "crontab": "config/crontab.php"
+      }
+    }
   }
 }

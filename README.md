@@ -52,7 +52,7 @@ return [
             ->setCallback([
             'command' => 'mailer:send',
             // (optional) arguments
-            'fooArgument' => 'barValue'
+            'arguments' => 'barValue'
             ]),
     ],
 ];

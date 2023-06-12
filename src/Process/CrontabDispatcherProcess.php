@@ -8,6 +8,7 @@ use Swoole\Timer;
 use think\App;
 use think\Log;
 use think\swoole\Manager;
+use ThinkCrontab\Coordinator;
 use ThinkCrontab\CrontabRegister;
 use ThinkCrontab\Scheduler;
 use ThinkCrontab\Strategy\CoroutineStrategy;
@@ -76,6 +77,13 @@ class CrontabDispatcherProcess
         $current = date( 's',time() );
         $sleep   = 60 - $current;
         $this->logger->debug( 'Crontab dispatcher sleep '.$sleep.'s.' );
-        $sleep > 0 && Coroutine::sleep( $sleep );
+        $CoordinatorManager = app()->make( Coordinator::class );
+        if ($sleep > 0) {
+            if ($CoordinatorManager->yield( $sleep )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

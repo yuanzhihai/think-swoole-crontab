@@ -5,7 +5,6 @@ declare( strict_types = 1 );
 namespace ThinkCrontab;
 
 use Carbon\Carbon;
-use Swoole\Coroutine\Channel;
 
 
 class Crontab

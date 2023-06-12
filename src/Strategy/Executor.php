@@ -10,6 +10,7 @@ use Swoole\Timer;
 use think\App;
 use think\facade\Console;
 use think\Log;
+use ThinkCrontab\Channel;
 use ThinkCrontab\Crontab;
 use Throwable;
 
@@ -82,7 +83,14 @@ class Executor
                     throw new InvalidArgumentException( sprintf( 'Crontab task type [%s] is invalid.',$crontab->getType() ) );
             }
 
-            $runnable = function () use ($crontab,$runnable) {
+            $channel = app()->make( Channel::class );
+
+            $runnable = function () use ($channel,$crontab,$runnable) {
+                if ($channel->isClosing()) {
+                    $crontab->close();
+                    $this->logResult( $crontab,false );
+                    return;
+                }
                 Coroutine::create( $runnable );
                 $crontab->complete();
             };

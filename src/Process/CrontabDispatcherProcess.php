@@ -4,18 +4,20 @@ declare( strict_types = 1 );
 namespace ThinkCrontab\Process;
 
 use Swoole\Coroutine;
-use Swoole\Process;
 use Swoole\Timer;
 use think\App;
 use think\Log;
+use think\swoole\Manager;
 use ThinkCrontab\CrontabRegister;
 use ThinkCrontab\Scheduler;
 use ThinkCrontab\Strategy\CoroutineStrategy;
 use ThinkCrontab\Strategy\StrategyInterface;
-use function Swoole\Coroutine\run;
 
 class CrontabDispatcherProcess
 {
+
+    private $server;
+
     /**
      * @var CrontabRegister
      */
@@ -38,6 +40,7 @@ class CrontabDispatcherProcess
 
     public function __construct(App $app)
     {
+        $this->server          = $app->make( Manager::class );
         $this->crontabRegister = $app->make( CrontabRegister::class );
         $this->scheduler       = $app->make( Scheduler::class );
         $this->strategy        = $app->make( CoroutineStrategy::class );
@@ -46,7 +49,7 @@ class CrontabDispatcherProcess
 
     public function handle(): void
     {
-        $process = new Process( function (Process $process) {
+        $func = function () {
             try {
                 $this->crontabRegister->handle();
                 while ( true ) {
@@ -63,8 +66,9 @@ class CrontabDispatcherProcess
                 Timer::clearAll();
                 Coroutine::sleep( 5 );
             }
-        },false,0,true );
-        $process->start();
+        };
+
+        $this->server->addWorker( $func );
     }
 
     private function sleep()

@@ -13,6 +13,7 @@ use ThinkCrontab\CrontabRegister;
 use ThinkCrontab\Scheduler;
 use ThinkCrontab\Strategy\CoroutineStrategy;
 use ThinkCrontab\Strategy\StrategyInterface;
+use function Symfony\Component\String\b;
 
 class CrontabDispatcherProcess
 {
@@ -54,7 +55,9 @@ class CrontabDispatcherProcess
             try {
                 $this->crontabRegister->handle();
                 while ( true ) {
-                    $this->sleep();
+                    if ($this->sleep()) {
+                        break;
+                    }
                     $crontabs = $this->scheduler->schedule();
                     while ( !$crontabs->isEmpty() ) {
                         $crontab = $crontabs->dequeue();

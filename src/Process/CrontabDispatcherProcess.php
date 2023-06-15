@@ -13,7 +13,6 @@ use ThinkCrontab\CrontabRegister;
 use ThinkCrontab\Scheduler;
 use ThinkCrontab\Strategy\CoroutineStrategy;
 use ThinkCrontab\Strategy\StrategyInterface;
-use function Symfony\Component\String\b;
 
 class CrontabDispatcherProcess
 {

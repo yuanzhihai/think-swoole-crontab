@@ -4,6 +4,7 @@ declare( strict_types = 1 );
 namespace ThinkCrontab\Strategy;
 
 use Carbon\Carbon;
+use Closure;
 use InvalidArgumentException;
 use Swoole\Coroutine;
 use Swoole\Timer;
@@ -50,14 +51,14 @@ class Executor
                                 $result   = true;
                                 $instance = $this->app->make( $class );
                                 if ($parameters && is_array( $parameters )) {
-                                    $instance->{$method}( ...$parameters );
+                                    $res = $instance->{$method}( ...$parameters );
                                 } else {
-                                    $instance->{$method}();
+                                    $res = $instance->{$method}();
                                 }
                             } catch ( \Throwable $throwable ) {
                                 $result = false;
                             } finally {
-                                $this->logResult( $crontab,$result,$throwable ?? null );
+                                $this->logResult( $crontab,$result,isset( $throwable ) ? $throwable->getMessage() : $res );
                             }
                         };
                     }
@@ -91,7 +92,7 @@ class Executor
                     $this->logResult( $crontab,false );
                     return;
                 }
-                Coroutine::create( $runnable );
+                $this->decorateRunnable( $crontab,$runnable )();
                 $crontab->complete();
             };
 
@@ -102,6 +103,18 @@ class Executor
         }
     }
 
+
+    protected function decorateRunnable(Crontab $crontab,Closure $runnable): Closure
+    {
+        if ($crontab->isSingleton()) {
+            // DOTO
+        }
+
+        if ($crontab->isOnOneServer()) {
+            // DOTO
+        }
+        return $runnable;
+    }
 
     protected function logResult(Crontab $crontab,bool $isSuccess,?Throwable $throwable = null)
     {

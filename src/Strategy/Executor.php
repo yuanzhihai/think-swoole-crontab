@@ -51,14 +51,14 @@ class Executor
                                 $result   = true;
                                 $instance = $this->app->make( $class );
                                 if ($parameters && is_array( $parameters )) {
-                                    $res = $instance->{$method}( ...$parameters );
+                                    $instance->{$method}( ...$parameters );
                                 } else {
-                                    $res = $instance->{$method}();
+                                    $instance->{$method}();
                                 }
                             } catch ( \Throwable $throwable ) {
                                 $result = false;
                             } finally {
-                                $this->logResult( $crontab,$result,isset( $throwable ) ? $throwable->getMessage() : $res );
+                                $this->logResult( $crontab,$result,$throwable ?? null );
                             }
                         };
                     }

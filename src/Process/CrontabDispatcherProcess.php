@@ -71,7 +71,9 @@ class CrontabDispatcherProcess
             }
         };
 
-        $this->manager->addWorker($process, 'crontab');
+        $this->manager->addWorker(function () use ($process) {
+            $this->manager->runWithBarrier($process);
+        }, 'crontab');
     }
 
     private function sleep()

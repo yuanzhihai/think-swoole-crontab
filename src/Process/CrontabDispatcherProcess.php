@@ -1,5 +1,5 @@
 <?php
-declare( strict_types = 1 );
+declare(strict_types=1);
 
 namespace ThinkCrontab\Process;
 
@@ -17,7 +17,7 @@ use ThinkCrontab\Strategy\StrategyInterface;
 class CrontabDispatcherProcess
 {
 
-    private $server;
+    private $manager;
 
     /**
      * @var CrontabRegister
@@ -41,47 +41,49 @@ class CrontabDispatcherProcess
 
     public function __construct(App $app)
     {
-        $this->server          = $app->make( Manager::class );
-        $this->crontabRegister = $app->make( CrontabRegister::class );
-        $this->scheduler       = $app->make( Scheduler::class );
-        $this->strategy        = $app->make( CoroutineStrategy::class );
-        $this->logger          = $app->make( Log::class );
+        $this->manager         = $app->make(Manager::class);
+        $this->crontabRegister = $app->make(CrontabRegister::class);
+        $this->scheduler       = $app->make(Scheduler::class);
+        $this->strategy        = $app->make(CoroutineStrategy::class);
+        $this->logger          = $app->make(Log::class);
     }
 
     public function handle(): void
     {
-        $func = function () {
+        $process = function () {
             try {
                 $this->crontabRegister->handle();
-                while ( true ) {
+                while (true) {
                     if ($this->sleep()) {
                         break;
                     }
                     $crontabs = $this->scheduler->schedule();
-                    while ( !$crontabs->isEmpty() ) {
+                    while (!$crontabs->isEmpty()) {
                         $crontab = $crontabs->dequeue();
-                        $this->strategy->dispatch( $crontab );
+                        $this->strategy->dispatch($crontab);
                     }
                 }
-            } catch ( \Throwable $throwable ) {
-                $this->logger->error( $throwable->getMessage() );
+            } catch (\Throwable $throwable) {
+                $this->logger->error($throwable->getMessage());
             } finally {
                 Timer::clearAll();
-                Coroutine::sleep( 5 );
+                Coroutine::sleep(5);
             }
         };
 
-        $this->server->addWorker( $func );
+        $this->manager->addWorker(function () use ($process) {
+            $this->manager->runWithBarrier($process);
+        }, 'crontab');
     }
 
     private function sleep()
     {
-        $current = date( 's',time() );
+        $current = date('s', time());
         $sleep   = 60 - $current;
-        $this->logger->debug( 'Crontab dispatcher sleep '.$sleep.'s.' );
-        $CoordinatorManager = app()->make( Coordinator::class );
+        $this->logger->debug('Crontab dispatcher sleep ' . $sleep . 's.');
+        $CoordinatorManager = app()->make(Coordinator::class);
         if ($sleep > 0) {
-            if ($CoordinatorManager->yield( $sleep )) {
+            if ($CoordinatorManager->yield($sleep)) {
                 return true;
             }
         }

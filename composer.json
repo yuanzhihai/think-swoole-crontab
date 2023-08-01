@@ -10,7 +10,7 @@
     }
   ],
   "require": {
-    "php": ">=8.0",
+    "php": ">=7.4",
     "topthink/think-swoole": "^4.0",
     "symfony/console": "^5.3|^6.0",
     "nesbot/carbon": "^2.0"

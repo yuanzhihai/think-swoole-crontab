@@ -6,7 +6,6 @@ namespace ThinkCrontab\Strategy;
 use Carbon\Carbon;
 use Closure;
 use InvalidArgumentException;
-use Swoole\Coroutine;
 use Swoole\Timer;
 use think\App;
 use think\facade\Console;
